@@ -1,16 +1,20 @@
 package br.androidapp.myclimate.fragments.home
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import br.androidapp.myclimate.databinding.FragmentHomeBinding
 import java.text.SimpleDateFormat
 import java.util.*
 import br.androidapp.myclimate.data.CurrentLocation
-
+import androidx.appcompat.app.AlertDialog
 
 
 class HomeFragment : Fragment() {
@@ -19,10 +23,18 @@ class HomeFragment : Fragment() {
     private val binding get() = requireNotNull(_binding)
 
     private val weatherDataAdapter = WeatherDataAdapter(
-        onLocationClicked = {
-            Toast.makeText(requireContext(), "onLocationClicked", Toast.LENGTH_SHORT).show()
-        }
+        onLocationClicked = { showLocationOptions() }
     )
+
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            getCurrentLocation()
+        } else {
+            Toast.makeText(requireContext(), "Permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
 
 
     override fun onCreateView(
@@ -52,5 +64,40 @@ class HomeFragment : Fragment() {
         val currentDate = Date()
         val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         return "Today, ${formatter.format(currentDate)}"
+    }
+
+    private fun getCurrentLocation(){
+        Toast.makeText(requireContext(), "getCurrentLocation", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun isLocationPermissionGranted(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestLocationPermission() {
+        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    private fun proceedWithCurrentLocation() {
+        if (isLocationPermissionGranted()) {
+            getCurrentLocation()
+        } else {
+            requestLocationPermission()
+        }
+    }
+
+    private fun showLocationOptions() {
+        val options = arrayOf("Current Location", "Search Manually")
+        AlertDialog.Builder(requireContext()).apply {
+            setTitle("Choose Location Method")
+            setItems(options) { _, which ->
+                when(which) {
+                    0 -> proceedWithCurrentLocation()
+                }
+            }
+            show()
+        }
     }
 }
