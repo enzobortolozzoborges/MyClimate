@@ -16,7 +16,9 @@ import br.androidapp.myclimate.data.CurrentLocation
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.viewModels
 import br.androidapp.myclimate.network.repository.WeatherDataRepository
+import br.androidapp.myclimate.storage.SharedPreferencesManager
 import com.google.android.gms.location.LocationServices
+import org.koin.android.ext.android.inject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -38,6 +40,9 @@ class HomeFragment : Fragment() {
     private val weatherDataAdapter = WeatherDataAdapter(
         onLocationClicked = { showLocationOptions() }
     )
+
+    private val sharedPreferencesManager: SharedPreferencesManager by inject()
+
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -62,32 +67,30 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setWeatherDataAdapter()
-        setWeatherData()
+        setWeatherData(currentLocation = sharedPreferencesManager.getCurrentLocation())
         setObservers()
     }
 
     private fun setObservers() {
         with(homeViewModel) {
-            currentLocation.observe(viewLifecycleOwner) { currentLocationDataState ->
-                val state = currentLocationDataState ?: return@observe
-
-                if (state.isLoading) {
+            currentLocation.observe(viewLifecycleOwner) {
+                val currentLocationDataState = it ?: return@observe
+                if (currentLocationDataState.isLoading) {
                     showLoading()
-                } else {
-                    hideLoading()
                 }
-
-                state.currentLocation?.let { currentLocation ->
+                currentLocationDataState.currentLocation?.let { currentLocation ->
+                    hideLoading()
+                    sharedPreferencesManager.saveCurrentLocation(currentLocation)
                     setWeatherData(currentLocation)
                 }
-
-                state.error?.let { error ->
+                currentLocationDataState.error?.let { error ->
                     hideLoading()
                     Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
+
 
     private fun setWeatherDataAdapter(){
         binding.weatherDataRecyclerView.adapter = weatherDataAdapter
