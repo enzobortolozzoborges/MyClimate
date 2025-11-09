@@ -1,6 +1,7 @@
 package br.androidapp.myclimate.fragments.home
 
 import android.Manifest
+import br.androidapp.myclimate.R
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.os.Bundle
@@ -15,13 +16,12 @@ import br.androidapp.myclimate.databinding.FragmentHomeBinding
 import br.androidapp.myclimate.data.CurrentLocation
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import br.androidapp.myclimate.network.repository.WeatherDataRepository
 import br.androidapp.myclimate.storage.SharedPreferencesManager
 import com.google.android.gms.location.LocationServices
 import org.koin.android.ext.android.inject
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+
 
 
 class HomeFragment : Fragment() {
@@ -69,6 +69,7 @@ class HomeFragment : Fragment() {
         setWeatherDataAdapter()
         setWeatherData(currentLocation = sharedPreferencesManager.getCurrentLocation())
         setObservers()
+
     }
 
     private fun setObservers() {
@@ -130,6 +131,7 @@ class HomeFragment : Fragment() {
             setItems(options) { _, which ->
                 when(which) {
                     0 -> proceedWithCurrentLocation()
+                    1 -> startManualLocationSearch()
                 }
             }
             show()
@@ -148,4 +150,9 @@ class HomeFragment : Fragment() {
             swipeRefreshLayout.isRefreshing = false
         }
     }
+
+    private fun startManualLocationSearch() {
+        findNavController().navigate(R.id.action_home_fragment_to_location_fragment)
+    }
+
 }

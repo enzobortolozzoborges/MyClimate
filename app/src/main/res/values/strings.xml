@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">MyClimate</string>
+    <string name="search_location">search_location</string>
 </resources>
