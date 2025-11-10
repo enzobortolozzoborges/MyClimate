@@ -6,9 +6,12 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import br.androidapp.myclimate.data.CurrentLocation
 import android.location.Geocoder
+import br.androidapp.myclimate.data.RemoteLocation
+import br.androidapp.myclimate.network.repository.api.WeatherAPI
+import retrofit2.http.Query
 
 
-class WeatherDataRepository {
+class WeatherDataRepository (private val weatherAPI: WeatherAPI){
 
     @SuppressLint("MissingPermission")
     fun getCurrentLocation(
@@ -53,5 +56,10 @@ class WeatherDataRepository {
                 location = addressText.toString()
             )
         } ?: currentLocation
+    }
+
+    suspend fun searchLocation(query: String): List<RemoteLocation>? {
+        val response = weatherAPI.searchLocation(query = query)
+        return if (response.isSuccessful) response.body() else null
     }
 }

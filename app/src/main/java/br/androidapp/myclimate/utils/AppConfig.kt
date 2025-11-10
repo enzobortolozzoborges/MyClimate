@@ -1,6 +1,7 @@
 package br.androidapp.myclimate.utils
 
 import android.app.Application
+import br.androidapp.myclimate.dependency_injection.networkModule
 import br.androidapp.myclimate.dependency_injection.repositoryModule
 import br.androidapp.myclimate.dependency_injection.serializerModule
 import br.androidapp.myclimate.dependency_injection.storageModule
@@ -19,7 +20,8 @@ class AppConfig : Application() {
                     repositoryModule,
                     viewModelModule,
                     serializerModule,
-                    storageModule
+                    storageModule,
+                    networkModule
                 )
             )
         }
