@@ -6,14 +6,16 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.androidapp.myclimate.data.CurrentLocation
+import br.androidapp.myclimate.data.LiveDataEvent
 import br.androidapp.myclimate.network.repository.WeatherDataRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import kotlinx.coroutines.launch
 
 class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : ViewModel() {
 
-    private val _currentLocation = MutableLiveData<CurrentLocationDataState>()
-    val currentLocation: LiveData<CurrentLocationDataState> get() = _currentLocation
+    private val _currentLocation = MutableLiveData<LiveDataEvent<CurrentLocationDataState>>()
+    val currentLocation: LiveData<LiveDataEvent<CurrentLocationDataState>> get() = _currentLocation
+
 
     fun getCurrentLocation(
         fusedLocationProviderClient: FusedLocationProviderClient,
@@ -35,13 +37,30 @@ class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : 
         }
     }
 
+    private fun updateAddressText(currentLocation: CurrentLocation, geocoder: Geocoder) {
+        viewModelScope.launch {
+            runCatching {
+                weatherDataRepository.updateAddressText(currentLocation, geocoder)
+            }.onSuccess { location ->
+                emitCurrentLocationUiState(currentLocation = location)
+            }.onFailure {
+                emitCurrentLocationUiState(
+                    currentLocation = currentLocation.copy(
+                        location = "N/A"
+                    )
+                )
+            }
+        }
+    }
+
     private fun emitCurrentLocationUiState(
         isLoading: Boolean = false,
         currentLocation: CurrentLocation? = null,
         error: String? = null
     ) {
-        val state = CurrentLocationDataState(isLoading, currentLocation, error)
-        _currentLocation.postValue(state)
+        val currentLocationDataState = CurrentLocationDataState(isLoading, currentLocation, error)
+        _currentLocation.value = LiveDataEvent(currentLocationDataState)
+
     }
 
     data class CurrentLocationDataState(

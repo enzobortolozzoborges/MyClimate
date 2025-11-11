@@ -1,6 +1,6 @@
 package br.androidapp.myclimate.dependency_injection
 
-import com.infinityandroid.weatherapp.network.api.WeatherAPI
+import br.androidapp.myclimate.network.repository.api.WeatherAPI
 import okhttp3.OkHttpClient
 import org.koin.dsl.module
 import retrofit2.Retrofit
