@@ -7,6 +7,7 @@ import com.google.android.gms.tasks.CancellationTokenSource
 import br.androidapp.myclimate.data.CurrentLocation
 import android.location.Geocoder
 import br.androidapp.myclimate.data.RemoteLocation
+import br.androidapp.myclimate.data.RemoteWeatherData
 import br.androidapp.myclimate.network.repository.api.WeatherAPI
 import retrofit2.http.Query
 
@@ -62,4 +63,11 @@ class WeatherDataRepository (private val weatherAPI: WeatherAPI){
         val response = weatherAPI.searchLocation(query = query)
         return if (response.isSuccessful) response.body() else null
     }
+
+    suspend fun getWeatherData(latitude: Double, longitude: Double): RemoteWeatherData? {
+        val response = weatherAPI.getWeatherData(query = "$latitude,$longitude")
+        return if (response.isSuccessful) response.body() else null
+    }
+
+
 }

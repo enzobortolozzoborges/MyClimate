@@ -105,19 +105,19 @@
             app:strokeColor="@color/sonic_silver"
             app:strokeWidth="1dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="@dimen/_4sdp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/_4sdp">
 
-            <androidx.appcompat.widget.AppCompatImageView
+                <androidx.appcompat.widget.AppCompatImageView
                 android:layout_width="@dimen/_22sdp"
                 android:layout_height="@dimen/_22sdp"
                 android:src="@drawable/humidity" />
 
-            <androidx.appcompat.widget.AppCompatTextView
+                <androidx.appcompat.widget.AppCompatTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
@@ -125,7 +125,7 @@
                 android:textColor="@color/sonic_silver"
                 android:textSize="@dimen/_10ssp" />
 
-            <androidx.appcompat.widget.AppCompatTextView
+                <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/textHumidity"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -134,8 +134,7 @@
                 android:textStyle="bold"
                 tools:text="24%" />
 
-
-        </LinearLayout>
+            </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView
 
