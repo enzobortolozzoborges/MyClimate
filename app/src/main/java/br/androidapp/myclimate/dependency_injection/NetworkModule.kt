@@ -21,7 +21,7 @@ private fun okHttpClient() = OkHttpClient.Builder()
     .build()
 
 private fun retrofit(okHttpClient: OkHttpClient) = Retrofit.Builder()
-    .baseUrl(WeatherAPI.BASE_URL)
+    .baseUrl("https://api.weatherapi.com/v1/")
     .client(okHttpClient)
     .addConverterFactory(GsonConverterFactory.create())
     .build()

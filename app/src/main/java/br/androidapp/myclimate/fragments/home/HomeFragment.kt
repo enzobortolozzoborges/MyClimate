@@ -119,11 +119,7 @@ class HomeFragment : Fragment() {
                 binding.swipeRefreshLayout.isRefreshing = weatherDataState.isLoading
 
                 weatherDataState.currentWeather?.let { currentWeather ->
-                    Toast.makeText(
-                        requireContext(),
-                        currentWeather.temperature.toString(),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    weatherDataAdapter.setCurrentWeather(currentWeather)
                 }
 
                 weatherDataState.error?.let { error ->

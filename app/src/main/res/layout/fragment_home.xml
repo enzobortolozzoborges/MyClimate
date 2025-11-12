@@ -15,4 +15,5 @@
         android:padding="@dimen/_16sdp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
+
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

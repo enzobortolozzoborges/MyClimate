@@ -3,4 +3,5 @@
     <string name="search_location">search_location</string>
     <string name="wind">wind\n</string>
     <string name="humidity">humidity</string>
+    <string name="chance_of_rain">Chance Of Rain</string>
 </resources>
