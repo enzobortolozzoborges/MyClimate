@@ -7,10 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.androidapp.myclimate.data.CurrentLocation
 import br.androidapp.myclimate.data.CurrentWeather
+import br.androidapp.myclimate.data.Forecast
 import br.androidapp.myclimate.data.LiveDataEvent
 import br.androidapp.myclimate.network.repository.WeatherDataRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : ViewModel() {
 
@@ -70,7 +73,7 @@ class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : 
         val currentLocation: CurrentLocation?,
         val error: String?
     )
-        //endregion
+    //endregion
 
     //region Weather Data
     private val _weatherData = MutableLiveData<LiveDataEvent<WeatherDataState>>()
@@ -78,11 +81,8 @@ class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : 
 
     fun getWeatherData(latitude: Double, longitude: Double) {
         viewModelScope.launch {
-
             emitWeatherDataUiState(isLoading = true)
-
             weatherDataRepository.getWeatherData(latitude, longitude)?.let { weatherData ->
-
                 emitWeatherDataUiState(
                     currentWeather = CurrentWeather(
                         icon = weatherData.current.condition.icon,
@@ -90,27 +90,46 @@ class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : 
                         wind = weatherData.current.wind,
                         humidity = weatherData.current.humidity,
                         chanceOfRain = weatherData.forecast.forecastDay.first().day.chanceOfRain
-                    )
+                    ),
+                    forecast = weatherData.forecast.forecastDay.first().hour.map {
+                        Forecast(
+                            time = getForecastTime(it.time),
+                            temperature = it.temperature,
+                            feelsLikeTemperature = it.feelsLikeTemperature,
+                            icon = it.condition.icon
+                        )
+                    }
                 )
             } ?: emitWeatherDataUiState(error = "Unable to fetch weather data")
-
         }
     }
 
     private fun emitWeatherDataUiState(
         isLoading: Boolean = false,
         currentWeather: CurrentWeather? = null,
+        forecast: List<Forecast>? = null, // <-- CORREÇÃO ESTÁ AQUI
         error: String? = null
     ) {
-        val weatherDataState = WeatherDataState(isLoading, currentWeather, error)
+        val weatherDataState = WeatherDataState(isLoading, currentWeather, forecast, error)
         _weatherData.value = LiveDataEvent(weatherDataState)
     }
 
     data class WeatherDataState(
         val isLoading: Boolean,
         val currentWeather: CurrentWeather?,
+        val forecast: List<Forecast>?,
         val error: String?
     )
+
+    private fun getForecastTime(dateTime: String): String {
+        try {
+            val pattern = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            val date = pattern.parse(dateTime) ?: return dateTime
+            return SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
+        } catch (e: Exception) {
+            return dateTime
+        }
+    }
 
     //endregion
 }

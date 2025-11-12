@@ -25,11 +25,15 @@ class WeatherDataAdapter(
 
     fun setCurrentLocation(currentLocation: CurrentLocation) {
         if (weatherData.isEmpty()) {
+            // 1. Se a lista está vazia (primeira vez), adiciona no índice 0
             weatherData.add(INDEX_CURRENT_LOCATION, currentLocation)
             notifyItemInserted(INDEX_CURRENT_LOCATION)
         } else {
-            weatherData.add(INDEX_CURRENT_WEATHER, currentLocation)
-            notifyItemInserted(INDEX_CURRENT_WEATHER)
+            // 2. ✅ CORREÇÃO AQUI
+            // Se a lista já tem itens, SUBSTITUI o item no índice 0
+            weatherData[INDEX_CURRENT_LOCATION] = currentLocation
+            // 3. E notifica que o item daquela posição MUDOU
+            notifyItemChanged(INDEX_CURRENT_LOCATION)
         }
     }
 
