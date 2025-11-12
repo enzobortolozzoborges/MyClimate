@@ -1,5 +1,3 @@
-// Em: br/androidapp/myclimate/fragments/home/HomeViewModel.kt
-
 package br.androidapp.myclimate.fragments.home
 
 import android.location.Geocoder
@@ -9,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.androidapp.myclimate.data.CurrentLocation
 import br.androidapp.myclimate.data.CurrentWeather
+// Import 'Forecast' já estava correto no seu arquivo
 import br.androidapp.myclimate.data.Forecast
 import br.androidapp.myclimate.data.LiveDataEvent
 import br.androidapp.myclimate.network.repository.WeatherDataRepository
@@ -17,24 +16,27 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : ViewModel() {
 
-    // ... (Código do CurrentLocation não muda) ...
     //region Current Location
     private val _currentLocation = MutableLiveData<LiveDataEvent<CurrentLocationDataState>>()
     val currentLocation: LiveData<LiveDataEvent<CurrentLocationDataState>> get() = _currentLocation
 
 
+    // FUNÇÃO ATUALIZADA
     fun getCurrentLocation(
         fusedLocationProviderClient: FusedLocationProviderClient,
         geocoder: Geocoder
     ) {
-        viewModelScope.launch {
+        viewModelScope.launch { // Coroutine principal
             emitCurrentLocationUiState(isLoading = true)
 
             weatherDataRepository.getCurrentLocation(
                 fusedLocationProviderClient = fusedLocationProviderClient,
                 onSuccess = { currentLocation ->
-                    val updated = weatherDataRepository.updateAddressText(currentLocation, geocoder)
-                    emitCurrentLocationUiState(currentLocation = updated)
+                    // MUDANÇA: Novo 'launch' para chamar a 'suspend fun' do repositório
+                    viewModelScope.launch {
+                        val updatedLocation = weatherDataRepository.updateAddressText(currentLocation, geocoder)
+                        emitCurrentLocationUiState(currentLocation = updatedLocation)
+                    }
                 },
                 onFailure = {
                     emitCurrentLocationUiState(error = "Unable to fetch current location")
@@ -43,21 +45,8 @@ class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : 
         }
     }
 
-    private fun updateAddressText(currentLocation: CurrentLocation, geocoder: Geocoder) {
-        viewModelScope.launch {
-            runCatching {
-                weatherDataRepository.updateAddressText(currentLocation, geocoder)
-            }.onSuccess { location ->
-                emitCurrentLocationUiState(currentLocation = location)
-            }.onFailure {
-                emitCurrentLocationUiState(
-                    currentLocation = currentLocation.copy(
-                        location = "N/A"
-                    )
-                )
-            }
-        }
-    }
+    // A função 'private fun updateAddressText' foi REMOVIDA daqui.
+    // Ela agora existe (como 'suspend fun') dentro do WeatherDataRepository.
 
     private fun emitCurrentLocationUiState(
         isLoading: Boolean = false,
@@ -75,6 +64,11 @@ class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : 
         val error: String?
     )
     //endregion
+
+    // ==========================================================
+    // NOTA: Toda a sua lógica de Weather Data (abaixo)
+    // foi mantida EXATAMENTE como você enviou.
+    // ==========================================================
 
     //region Weather Data
     private val _weatherData = MutableLiveData<LiveDataEvent<WeatherDataState>>()

@@ -10,9 +10,12 @@ import br.androidapp.myclimate.data.RemoteLocation
 import br.androidapp.myclimate.data.RemoteWeatherData
 import br.androidapp.myclimate.network.repository.api.WeatherAPI
 import retrofit2.http.Query
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 
 class WeatherDataRepository (private val weatherAPI: WeatherAPI){
+
 
     @SuppressLint("MissingPermission")
     fun getCurrentLocation(
@@ -40,23 +43,54 @@ class WeatherDataRepository (private val weatherAPI: WeatherAPI){
         }
     }
 
+
+
     @Suppress("DEPRECATION")
-    fun updateAddressText(
+    // FUNÇÃO ATUALIZADA - agora é 'suspend fun'
+    suspend fun updateAddressText(
         currentLocation: CurrentLocation,
         geocoder: Geocoder
     ): CurrentLocation {
         val latitude = currentLocation.latitude ?: return currentLocation
         val longitude = currentLocation.longitude ?: return currentLocation
-        return geocoder.getFromLocation(latitude, longitude, 1)?.let { addresses ->
-            val address = addresses[0]
-            val addressText = StringBuilder()
-            addressText.append(address.locality).append(", ")
-            addressText.append(address.adminArea).append(", ")
-            addressText.append(address.countryName)
-            currentLocation.copy(
-                location = addressText.toString()
-            )
-        } ?: currentLocation
+
+        // MUDANÇA: Movido para a thread de IO (background)
+        return withContext(Dispatchers.IO) {
+            try {
+                val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+
+                if (addresses.isNullOrEmpty()) {
+                    return@withContext currentLocation.copy(location = "Localização desconhecida")
+                }
+
+                val address = addresses[0]
+
+                // MUDANÇA: Lógica de lista para evitar "null"
+                val locationParts = mutableListOf<String>()
+
+                val city = address.locality ?: address.subAdminArea
+                if (!city.isNullOrBlank()) {
+                    locationParts.add(city)
+                }
+
+                if (!address.adminArea.isNullOrBlank()) {
+                    locationParts.add(address.adminArea)
+                }
+
+                if (!address.countryName.isNullOrBlank()) {
+                    locationParts.add(address.countryName)
+                }
+
+                val finalAddressText = locationParts.joinToString(", ")
+
+                currentLocation.copy(
+                    location = if (finalAddressText.isBlank()) "Localização desconhecida" else finalAddressText
+                )
+            } catch (e: Exception) {
+                // MUDANÇA: Tratamento de erro (ex: offline)
+                currentLocation.copy(location = "Erro ao buscar endereço")
+            }
+        }
     }
 
     suspend fun searchLocation(query: String): List<RemoteLocation>? {
