@@ -1,3 +1,5 @@
+// Em: br/androidapp/myclimate/fragments/home/HomeViewModel.kt
+
 package br.androidapp.myclimate.fragments.home
 
 import android.location.Geocoder
@@ -12,11 +14,10 @@ import br.androidapp.myclimate.data.LiveDataEvent
 import br.androidapp.myclimate.network.repository.WeatherDataRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : ViewModel() {
 
+    // ... (Código do CurrentLocation não muda) ...
     //region Current Location
     private val _currentLocation = MutableLiveData<LiveDataEvent<CurrentLocationDataState>>()
     val currentLocation: LiveData<LiveDataEvent<CurrentLocationDataState>> get() = _currentLocation
@@ -81,25 +82,37 @@ class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : 
 
     fun getWeatherData(latitude: Double, longitude: Double) {
         viewModelScope.launch {
+
             emitWeatherDataUiState(isLoading = true)
+
             weatherDataRepository.getWeatherData(latitude, longitude)?.let { weatherData ->
-                emitWeatherDataUiState(
-                    currentWeather = CurrentWeather(
-                        icon = weatherData.current.condition.icon,
-                        temperature = weatherData.current.temperature,
-                        wind = weatherData.current.wind,
-                        humidity = weatherData.current.humidity,
-                        chanceOfRain = weatherData.forecast.forecastDay.first().day.chanceOfRain
-                    ),
-                    forecast = weatherData.forecast.forecastDay.first().hour.map {
-                        Forecast(
-                            time = getForecastTime(it.time),
-                            temperature = it.temperature,
-                            feelsLikeTemperature = it.feelsLikeTemperature,
-                            icon = it.condition.icon
-                        )
-                    }
+
+                // 1. Mapear o Clima Atual (como antes)
+                val currentWeather = CurrentWeather(
+                    icon = weatherData.current.condition.icon,
+                    temperature = weatherData.current.temperature,
+                    wind = weatherData.current.wind,
+                    humidity = weatherData.current.humidity,
+                    chanceOfRain = weatherData.forecast.forecastDay.first().day.chanceOfRain
                 )
+
+                // 2. ADICIONADO: Mapear a Lista de Previsão por Hora
+                // A API nos dá a lista 'hour'
+                val forecastList = weatherData.forecast.forecastDay.first().hour.map { forecastHour ->
+                    Forecast(
+                        time = forecastHour.time,
+                        temperature = forecastHour.temperature,
+                        feelsLikeTemperature = forecastHour.feelsLikeTemperature,
+                        icon = forecastHour.condition.icon
+                    )
+                }
+
+                // 3. ADICIONADO: Enviar *ambos* para a UI
+                emitWeatherDataUiState(
+                    currentWeather = currentWeather,
+                    forecast = forecastList // Passa a nova lista
+                )
+
             } ?: emitWeatherDataUiState(error = "Unable to fetch weather data")
         }
     }
@@ -107,9 +120,11 @@ class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : 
     private fun emitWeatherDataUiState(
         isLoading: Boolean = false,
         currentWeather: CurrentWeather? = null,
-        forecast: List<Forecast>? = null, // <-- CORREÇÃO ESTÁ AQUI
+        // ADICIONADO: Novo parâmetro para a lista de previsão
+        forecast: List<Forecast>? = null,
         error: String? = null
     ) {
+        // ADICIONADO: Passa a lista de previsão para o DataState
         val weatherDataState = WeatherDataState(isLoading, currentWeather, forecast, error)
         _weatherData.value = LiveDataEvent(weatherDataState)
     }
@@ -117,19 +132,9 @@ class HomeViewModel(private val weatherDataRepository: WeatherDataRepository) : 
     data class WeatherDataState(
         val isLoading: Boolean,
         val currentWeather: CurrentWeather?,
+        // ADICIONADO: Novo campo para a lista de previsão
         val forecast: List<Forecast>?,
         val error: String?
     )
-
-    private fun getForecastTime(dateTime: String): String {
-        try {
-            val pattern = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            val date = pattern.parse(dateTime) ?: return dateTime
-            return SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
-        } catch (e: Exception) {
-            return dateTime
-        }
-    }
-
     //endregion
 }

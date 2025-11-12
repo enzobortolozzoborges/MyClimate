@@ -79,10 +79,18 @@ class HomeFragment : Fragment() {
 
         setWeatherDataAdapter()
         setObservers()
+        setListeners()
 
+        // Tenta carregar a última localização guardada
         if (!isInitialLocationSet) {
             setCurrentLocation(currentLocation = sharedPreferencesManager.getCurrentLocation())
             isInitialLocationSet = true
+        }
+    }
+
+    private fun setListeners() {
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            setCurrentLocation(sharedPreferencesManager.getCurrentLocation())
         }
     }
 
@@ -97,6 +105,8 @@ class HomeFragment : Fragment() {
 
     private fun setObservers() {
         with(homeViewModel) {
+
+            // Observador para a Localização
             currentLocation.observe(viewLifecycleOwner) {
                 val state = it.getContentIfNotHandled() ?: return@observe
 
@@ -104,7 +114,9 @@ class HomeFragment : Fragment() {
 
                 state.currentLocation?.let { current ->
                     hideLoading()
+                    // Guarda a localização mais recente
                     sharedPreferencesManager.saveCurrentLocation(current)
+                    // Atualiza a UI e busca os dados de clima
                     setCurrentLocation(current)
                 }
 
@@ -113,29 +125,40 @@ class HomeFragment : Fragment() {
                     Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
                 }
             }
+
+            // Observador para os Dados de Clima (Atual + Previsão)
             weatherData.observe(viewLifecycleOwner) {
                 val weatherDataState = it.getContentIfNotHandled() ?: return@observe
 
                 binding.swipeRefreshLayout.isRefreshing = weatherDataState.isLoading
 
+                // Atualiza o Clima Atual
                 weatherDataState.currentWeather?.let { currentWeather ->
                     weatherDataAdapter.setCurrentWeather(currentWeather)
                 }
 
+                // CORRIGIDO: O nome da função é "setForecast"
+                weatherDataState.forecast?.let { forecastList ->
+                    weatherDataAdapter.setForecast(forecastList)
+                }
+
+                // Mostra erro se houver
                 weatherDataState.error?.let { error ->
                     Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
                 }
             }
-
         }
     }
 
     private fun setWeatherDataAdapter() {
+        binding.weatherDataRecyclerView.itemAnimator = null
         binding.weatherDataRecyclerView.adapter = weatherDataAdapter
     }
 
     private fun setCurrentLocation(currentLocation: CurrentLocation? = null) {
+        // Define a localização (ou o estado de "Escolha a localização")
         weatherDataAdapter.setCurrentLocation(currentLocation ?: CurrentLocation())
+        // Se temos uma localização real, busca os dados de clima para ela
         currentLocation?.let { getWeatherData(currentLocation = it) }
     }
 
@@ -169,8 +192,8 @@ class HomeFragment : Fragment() {
             .setTitle("Choose Location Method")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> proceedWithCurrentLocation()
-                    1 -> startManualLocationSearch()
+                    0 -> proceedWithCurrentLocation() // Pede GPS
+                    1 -> startManualLocationSearch() // Abre a outra tela
                 }
             }
             .show()
@@ -179,6 +202,7 @@ class HomeFragment : Fragment() {
     private fun showLoading() {
         with(binding) {
             weatherDataRecyclerView.visibility = View.GONE
+            swipeRefreshLayout.isEnabled = false
             swipeRefreshLayout.isRefreshing = true
         }
     }
@@ -186,25 +210,32 @@ class HomeFragment : Fragment() {
     private fun hideLoading() {
         with(binding) {
             weatherDataRecyclerView.visibility = View.VISIBLE
+            swipeRefreshLayout.isEnabled = true
             swipeRefreshLayout.isRefreshing = false
         }
     }
 
+    // --- Navegação para a tela de Busca Manual ---
+
     private fun startManualLocationSearch() {
         startListeningManualLocationSelection()
+        // Navega para o LocationFragment
         findNavController().navigate(R.id.action_home_fragment_to_location_fragment)
     }
 
     private fun startListeningManualLocationSelection() {
+        // Ouve por um resultado vindo do LocationFragment
         setFragmentResultListener(REQUEST_KEY_MANUAL_LOCATION_SEARCH) { _, bundle ->
             stopListeningManualLocationSelection()
 
+            // Cria um novo objeto CurrentLocation com os dados da busca
             val currentLocation = CurrentLocation(
                 location = bundle.getString(KEY_LOCATION_TEXT) ?: "N/A",
                 latitude = bundle.getDouble(KEY_LATITUDE),
                 longitude = bundle.getDouble(KEY_LONGITUDE)
             )
 
+            // Salva a localização e atualiza a UI
             sharedPreferencesManager.saveCurrentLocation(currentLocation)
             setCurrentLocation(currentLocation)
         }
@@ -214,7 +245,10 @@ class HomeFragment : Fragment() {
         clearFragmentResultListener(REQUEST_KEY_MANUAL_LOCATION_SEARCH)
     }
 
+    // --- Busca de Dados ---
+
     private fun getWeatherData(currentLocation: CurrentLocation) {
+        // Garante que temos latitude e longitude antes de chamar a API
         if (currentLocation.latitude != null && currentLocation.longitude != null) {
             homeViewModel.getWeatherData(
                 latitude = currentLocation.latitude,
